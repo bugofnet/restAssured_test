@@ -1,3 +1,6 @@
+import com.github.fge.jsonschema.SchemaVersion;
+import com.github.fge.jsonschema.cfg.ValidationConfiguration;
+import com.github.fge.jsonschema.main.JsonSchemaFactory;
 import com.jayway.restassured.response.Response;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.MethodOrderer;
@@ -8,6 +11,8 @@ import org.junit.jupiter.api.TestMethodOrder;
 import static com.jayway.restassured.RestAssured.*;
 import static com.sun.xml.internal.ws.spi.db.BindingContextFactory.LOGGER;
 import static org.hamcrest.CoreMatchers.equalTo;
+
+import static io.restassured.module.jsv.JsonSchemaValidator.matchesJsonSchemaInClasspath;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 
@@ -83,5 +88,29 @@ public class ApiTest {
                 assertThat().body("{}", Matchers.nullValue());
         LOGGER.info("Post has been deleted .");
     }
+
+    @Test
+    public void checkJSONSchemaValidation() {
+        get("http://localhost:3000/posts/1").then().assertThat()
+                .body(matchesJsonSchemaInClasspath("postSchema.json"));
+    }
+
+    @Test
+    public void checkJSONSchemaValidationWithDraftVersion() {
+        JsonSchemaFactory jsonSchemaFactory = JsonSchemaFactory
+                .newBuilder()
+                .setValidationConfiguration(
+                        ValidationConfiguration.newBuilder()
+                                .setDefaultVersion(SchemaVersion.DRAFTV4)
+                                .freeze()).freeze();
+
+        get("http://localhost:3000/posts/1")
+                .then()
+                .assertThat()
+                .body(matchesJsonSchemaInClasspath("postSchema.json").using(
+                        jsonSchemaFactory));
+    }
+
+
 
 }
